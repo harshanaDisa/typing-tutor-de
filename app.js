@@ -191,6 +191,43 @@ const LOGO_SENTENCES = [
   "Ein Karamell."
 ];
 
+/* ---------- logo!-Pakete ----------
+   Die logo!-Sendung besteht aus mehreren Themenblöcken (Paketen).
+   Der Nutzer kann wählen, aus welchem Paket die Sätze kommen.
+   „alle“ = alle Sätze aus der Sendung.
+   Die Paket-Grenzen werden über die Anfangswörter der ersten Sätze
+   bestimmt — so bleibt der Code auch bei kleinen Textänderungen stabil.
+*/
+const LOGO_PACKAGES = (() => {
+  const all = LOGO_SENTENCES;
+  const find = (prefix) => all.findIndex((s) => s.startsWith(prefix));
+  const cut = (a, b) => all.slice(a, b);
+  const iFlucht   = find("Manche Menschen kommen nach Deutschland");
+  const iWueste   = find("Sand, so weit man gucken kann");
+  const iFerien   = find("An alle Kinder in Baden-Württemberg");
+  const iMedaillen= find("Und wenn wir schon bei Highlights sind");
+  const iAbschied = find("Und damit ist");
+  return {
+    sport:       cut(0, iFlucht),
+    gefluechtete: cut(iFlucht, iWueste),
+    wueste:      cut(iWueste, iFerien),
+    ferien:      cut(iFerien, iMedaillen),
+    medaillen:   cut(iMedaillen, iAbschied),
+    abschied:    cut(iAbschied, all.length)
+  };
+})();
+
+// Pakete für die Auswahl im Dropdown („alle“ zuerst)
+const LOGO_PACKAGE_OPTIONS = [
+  { id: "alle",          label: "Alle (ganze Sendung)" },
+  { id: "sport",         label: "Sport-Erfolge" },
+  { id: "gefluechtete",  label: "Geflüchtete & Syrien" },
+  { id: "wueste",        label: "Wüste & Mongolei" },
+  { id: "ferien",        label: "Sommerferien" },
+  { id: "medaillen",     label: "Medaillen-Rekord" },
+  { id: "abschied",      label: "Wetter, Witz & Abschied" }
+];
+
 const MODES = [
   { id: "anfaenger",       label: "Anfänger",       hint: "Artikel + Nomen (korrekte Phrasen)" },
   { id: "fortgeschritten", label: "Fortgeschritten", hint: "Adjektiv + Nomen (korrekte Phrasen)" },
@@ -210,6 +247,7 @@ const KEY_ROWS = [
 /* ---------- Zustand ---------- */
 const state = {
   mode: "anfaenger",
+  logoPackage: "alle",
   target: "",
   chars: [],
   pos: 0,
@@ -301,7 +339,10 @@ function pickTarget(){
     return SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
   }
   if (state.mode === "logo"){
-    return LOGO_SENTENCES[Math.floor(Math.random() * LOGO_SENTENCES.length)];
+    const bank = state.logoPackage === "alle"
+      ? LOGO_SENTENCES
+      : LOGO_PACKAGES[state.logoPackage] || LOGO_SENTENCES;
+    return bank[Math.floor(Math.random() * bank.length)];
   }
   const bank = WORDS[state.mode];
   const pool = bank.slice();
@@ -592,11 +633,42 @@ function onKeyDown(e){
   processKey(key);
 }
 
+/* ---------- Regen-Wortpaket-Auswahl ---------- */
+function buildRainPackages(){
+  const sel = $("rain-pkg-select");
+  if (!sel) return;
+  sel.innerHTML = "";
+  RAIN_WORDS_OPTIONS.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.label;
+    sel.appendChild(opt);
+  });
+  // Gespeicherte Auswahl wiederherstellen
+  try {
+    const saved = localStorage.getItem("typtrainer-de:rain-word-set");
+    if (saved && RAIN_WORDS_OPTIONS.some((o) => o.id === saved)) rainWordSet = saved;
+  } catch (e) { /* ignore */ }
+  sel.value = rainWordSet || "alle";
+  sel.addEventListener("change", () => {
+    rainWordSet = sel.value;
+    try { localStorage.setItem("typtrainer-de:rain-word-set", rainWordSet); } catch (e) {}
+    // Neue Runde / Auswahl wirkt sofort
+    if (state.mode === "regen"){ setMode("regen"); } // Regen-Spiel sauber neu starten
+  });
+}
+
 /* ---------- Modus ---------- */
 function setMode(id){
   state.mode = id;
   const sel = $("mode-select");
   if (sel && sel.value !== id) sel.value = id; // Dropdown synchron halten
+  // Paket-Auswahl nur im logo!-Modus zeigen
+  const pkgWrap = $("pkg-wrap");
+  if (pkgWrap) pkgWrap.classList.toggle("hidden", id !== "logo");
+  // Wortpaket-Auswahl nur im Regen-Modus zeigen
+  const rainPkgWrap = $("rain-pkg-wrap");
+  if (rainPkgWrap) rainPkgWrap.classList.toggle("hidden", id !== "regen");
   if (id === "regen"){
     // Spielansicht zeigen, Tipp-Ansicht ausblenden
     $("game-card").classList.remove("hidden");
@@ -626,9 +698,36 @@ function buildModes(){
   sel.addEventListener("change", () => setMode(sel.value));
 }
 
+/* ---------- logo!-Paket-Auswahl ---------- */
+function buildLogoPackages(){
+  const sel = $("pkg-select");
+  if (!sel) return;
+  sel.innerHTML = "";
+  LOGO_PACKAGE_OPTIONS.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.label;
+    sel.appendChild(opt);
+  });
+  // Gespeicherte Auswahl wiederherstellen
+  try {
+    const saved = localStorage.getItem("typtrainer-de:logo-package");
+    if (saved && LOGO_PACKAGES[saved]) state.logoPackage = saved;
+  } catch (e) { /* ignore */ }
+  sel.value = state.logoPackage;
+  sel.addEventListener("change", () => {
+    state.logoPackage = sel.value;
+    try { localStorage.setItem("typtrainer-de:logo-package", state.logoPackage); } catch (e) {}
+    // neue Runde mit dem gewählten Paket starten
+    if (state.mode === "logo") newRound();
+  });
+}
+
 /* ---------- Init ---------- */
 buildKeyboard();
 buildModes();
+buildLogoPackages();
+buildRainPackages();
 window.addEventListener("keydown", onKeyDown);
 $("btn-again").addEventListener("click", () => newRound());
 $("rain-again").addEventListener("click", () => {

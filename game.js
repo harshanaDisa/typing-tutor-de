@@ -6,16 +6,79 @@
 */
 
 /* ---------- Wortschatz (deutsche Wörter zum Abschießen) ---------- */
-// Einzelwörter (ohne Leerzeichen), damit sie sich flüssig tippen lassen
-const RAIN_WORDS = [
-  "Tag","Zeit","Haus","Nacht","Mond","Sonne","Auto","Stadt","Baum","Buch","Schule","Hund","Katze","Wasser",
-  "Kaffee","Straße","Fenster","Tisch","Stuhl","Brot","Milch","Käse","Woche","Jahr","Monat","Mutter","Vater",
-  "Kind","Hand","Kopf","Auge","Bein","Herz","Wald","Fluss","Meer","Berg","Wolke","Stern","Wetter","Frühling",
-  "Sommer","Herbst","Winter","Blume","Feuer","Boot","lernen","schreiben","tippen","lesen","spielen","singen",
-  "tanzen","lachen","rennen","springen","schwimmen","essen","trinken","schlafen","schnell","langsam","groß",
-  "klein","schön","wichtig","neu","gut","böse","klug","warm","kalt","hell","dunkel","leicht","schwer","Freund",
-  "Familie","Computer","Telefon","Kamera","Musik","Sprache","Erfolg","Zukunft","Reise","Bahnhof","Flugzeug"
+// Einzelwörter (ohne Leerzeichen), damit sie sich flüssig tippen lassen.
+// Die Wörter sind in Themen-Pakete gruppiert; der Nutzer kann per Dropdown
+// wählen, aus welchem Paket die fallenden Wörter kommen („Alle“ = alles).
+const RAIN_WORDS_PACKAGES = {
+  alltag: [
+    "Tag","Zeit","Haus","Nacht","Auto","Stadt","Buch","Schule","Straße","Fenster","Tisch","Stuhl",
+    "Woche","Jahr","Monat","Freund","Familie","Computer","Telefon","Kamera","Musik","Sprache",
+    "Erfolg","Zukunft","Reise","Bahnhof","Flugzeug"
+  ],
+  natur: [
+    "Mond","Sonne","Baum","Wasser","Wald","Fluss","Meer","Berg","Wolke","Stern","Wetter",
+    "Frühling","Sommer","Herbst","Winter","Blume","Feuer","Boot","Hund","Katze"
+  ],
+  essen: [
+    "Kaffee","Brot","Milch","Käse","Apfel","Kuchen","Salat","Suppe","Honig","Butter","Ei","Fisch"
+  ],
+  familienkoerper: [
+    "Mutter","Vater","Kind","Bruder","Schwester","Hand","Kopf","Auge","Bein","Herz","Nase","Mund"
+  ],
+  verben: [
+    "lernen","schreiben","tippen","lesen","spielen","singen","tanzen","lachen","rennen",
+    "springen","schwimmen","essen","trinken","schlafen","gehen","kommen","machen","sehen"
+  ],
+  adjektive: [
+    "schnell","langsam","groß","klein","schön","wichtig","neu","gut","böse","klug","warm",
+    "kalt","hell","dunkel","leicht","schwer","laut","leise","bunt","frisch"
+  ]
+};
+
+// Gesamte Wortliste = Vereinigung aller Pakete (hintere Kompatibilität)
+const RAIN_WORDS = Object.values(RAIN_WORDS_PACKAGES).reduce((a, b) => a.concat(b), []);
+
+// Pakete für das Dropdown („Alle“ zuerst)
+const RAIN_WORDS_OPTIONS = [
+  { id: "alle",                 label: "Alle Wörter" },
+  { id: "this-week-from-logo",  label: "logo! – diese Woche" },
+  { id: "alltag",               label: "Alltag" },
+  { id: "natur",                label: "Natur & Tiere" },
+  { id: "essen",                label: "Essen & Trinken" },
+  { id: "familienkoerper",      label: "Familie & Körper" },
+  { id: "verben",               label: "Aktionen (Verben)" },
+  { id: "adjektive",            label: "Adjektive" }
 ];
+
+// aktuell gewähltes Paket (Standard: alle)
+let rainWordSet = "alle";
+
+// Wörter aus der aktuellen logo!-Sendung extrahieren.
+// LOGO_SENTENCES liegt in app.js (wird erst nach game.js geladen) –
+// deshalb erst bei Bedarf berechnen und cachen.
+let _logoWordsCache = null;
+function rainLogoWords(){
+  if (_logoWordsCache) return _logoWordsCache;
+  const src = (typeof LOGO_SENTENCES !== "undefined") ? LOGO_SENTENCES : [];
+  const found = new Set();
+  const re = /[A-Za-zÄÖÜäöüß'][A-Za-zÄÖÜäöüß'-]*/g;
+  for (const s of src){
+    const toks = (s.match(re) || []);
+    for (const t of toks){
+      const w = t.replace(/'/g, "").replace(/-/g, "").toLowerCase();
+      if (w.length >= 3) found.add(w);
+    }
+  }
+  _logoWordsCache = Array.from(found);
+  return _logoWordsCache;
+}
+
+// Liefert die Wortliste des gewählten Pakets (für Zustandsschutz)
+function rainCurrentWords(){
+  if (rainWordSet === "this-week-from-logo") return rainLogoWords();
+  const bank = RAIN_WORDS_PACKAGES[rainWordSet] || RAIN_WORDS;
+  return bank.length ? bank : RAIN_WORDS;
+}
 
 
 /* ---------- Spielzustand ---------- */
@@ -227,7 +290,8 @@ function rainResizeCanvas(){
 function rainSpawn(){
   const g = RainGame;
   if (g.words.length >= 6) return;
-  const txt = RAIN_WORDS[Math.floor(Math.random() * RAIN_WORDS.length)];
+  const words = rainCurrentWords();
+  const txt = words[Math.floor(Math.random() * words.length)];
   // ruhigere Fallgeschwindigkeit (ca. halb so schnell wie vorher);
   // Schwierigkeit skaliert die Geschwindigkeit
   const speed = (16 + g.level * 2.5 + Math.random() * 10) * g.speedMult;
@@ -246,7 +310,8 @@ function rainSpawn(){
 function rainDemoSpawn(){
   const g = RainGame;
   if (g.words.length >= 5) return;
-  const txt = RAIN_WORDS[Math.floor(Math.random() * RAIN_WORDS.length)];
+  const words = rainCurrentWords();
+  const txt = words[Math.floor(Math.random() * words.length)];
   const speed = 34 + g.level * 3 + Math.random() * 18;
   const w = g.ctx ? g.ctx.measureText(txt).width : txt.length * 12;
   const x = Math.random() * Math.max(40, g.W - w - 60) + 20;
