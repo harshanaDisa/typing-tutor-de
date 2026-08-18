@@ -114,6 +114,7 @@ function rainReset(){
   g.spawnTimer = 0;
   g.resizeCount = 0;
   g.startedAt = performance.now();
+  _rainRecent.length = 0; // Wiederholungs-Schutz für jede neue Runde zurücksetzen
 }
 
 // Startbildschirm: Demo-Animation simuliert das Spielgeschehen,
@@ -287,11 +288,31 @@ function rainResizeCanvas(){
   g.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+// Zuletzt gespielte Wörter – wird genutzt, um Wiederholungen zu vermeiden
+let _rainRecent = [];
+const RAIN_RECENT_MAX = 8;
+
+// Wählt ein Wort so, dass kürzlich benutzte Wörter vermieden werden.
+// Bei kleinen Paketen (alle Wörter kürzlich) werden Wiederholungen erlaubt.
+function rainPickWord(){
+  const words = rainCurrentWords();
+  if (words.length === 0) return "";
+  // Nur Wörter, die NICHT in den letzten RAIN_RECENT_MAX vorkamen
+  const fresh = words.filter((w) => !_rainRecent.includes(w));
+  const pool = fresh.length > 0 ? fresh : words;
+  const word = pool[Math.floor(Math.random() * pool.length)];
+  // In die Recent-Liste aufnehmen (ältestes bei Überlauf entfernen)
+  const ri = _rainRecent.indexOf(word);
+  if (ri >= 0) _rainRecent.splice(ri, 1);
+  _rainRecent.push(word);
+  if (_rainRecent.length > RAIN_RECENT_MAX) _rainRecent.shift();
+  return word;
+}
+
 function rainSpawn(){
   const g = RainGame;
   if (g.words.length >= 6) return;
-  const words = rainCurrentWords();
-  const txt = words[Math.floor(Math.random() * words.length)];
+  const txt = rainPickWord();
   // ruhigere Fallgeschwindigkeit (ca. halb so schnell wie vorher);
   // Schwierigkeit skaliert die Geschwindigkeit
   const speed = (16 + g.level * 2.5 + Math.random() * 10) * g.speedMult;
@@ -310,8 +331,7 @@ function rainSpawn(){
 function rainDemoSpawn(){
   const g = RainGame;
   if (g.words.length >= 5) return;
-  const words = rainCurrentWords();
-  const txt = words[Math.floor(Math.random() * words.length)];
+  const txt = rainPickWord();
   const speed = 34 + g.level * 3 + Math.random() * 18;
   const w = g.ctx ? g.ctx.measureText(txt).width : txt.length * 12;
   const x = Math.random() * Math.max(40, g.W - w - 60) + 20;
