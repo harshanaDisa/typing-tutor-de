@@ -225,7 +225,8 @@ function rainHideDifficulty(){
 function rainSetDifficulty(d){
   const g = RainGame;
   g.difficulty = d;
-  if (d === "easy"){ g.lives = 7; g.speedMult = 0.7; }
+  // „slow“/„easy“ = 50 % Geschwindigkeit (0.5×)
+  if (d === "easy" || d === "slow"){ g.lives = 7; g.speedMult = 0.5; }
   else if (d === "hard"){ g.lives = 3; g.speedMult = 1.5; }
   else { g.lives = 5; g.speedMult = 1; }
 }
