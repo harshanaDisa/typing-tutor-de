@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tipp-Trainer Deutsch</title>
+<link rel="stylesheet" href="style.css?v=20260817">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Tipp-Trainer <span class="accent">Deutsch</span></h1>
+      <p class="sub">Übe dein Tippen mit deutschen Wörtern und Sätzen · QWERTZ-Layout</p>
+    </header>
+
+    <div class="modes">
+      <label class="modes-label" for="mode-select">Modus</label>
+      <select id="mode-select" class="mode-select"></select>
+    </div>
+
+    <section class="card" id="card-typing">
+      <div class="stats">
+        <div class="stat"><span class="stat-num" id="stat-wpm">0</span><span class="stat-label">WPM</span></div>
+        <div class="stat"><span class="stat-num" id="stat-acc">100 %</span><span class="stat-label">Genauigkeit</span></div>
+        <div class="stat"><span class="stat-num" id="stat-mistakes">0</span><span class="stat-label">Fehler</span></div>
+        <div class="stat"><span class="stat-num" id="stat-time">0:00</span><span class="stat-label">Zeit</span></div>
+      </div>
+
+      <div class="display" id="display"></div>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <p class="status" id="status"></p>
+    </section>
+
+    <section class="card game-card hidden" id="game-card">
+      <div class="game-hud">
+        <div class="gstat"><span class="stat-num" id="rain-score">0</span><span class="stat-label">Punkte</span></div>
+        <div class="gstat"><span class="stat-num" id="rain-lives">♥♥♥♥♥</span><span class="stat-label">Leben</span></div>
+        <div class="gstat"><span class="stat-num" id="rain-level">1</span><span class="stat-label">Level</span></div>
+      </div>
+      <canvas id="rain-canvas" width="800" height="380"></canvas>
+      <div class="game-start">
+        <button class="btn primary" id="rain-start-btn" type="button">Starten</button>
+      </div>
+      <p class="status" id="status"></p>
+    </section>
+
+    <section class="keyboard" id="keyboard" aria-label="Tastatur-Anzeige"></section>
+
+    <footer class="hints">
+      <span><kbd>Esc</kbd> Abbrechen</span>
+      <span><kbd>⏎</kbd> / <kbd>Leertaste</kbd> Weiter nach dem Ende</span>
+    </footer>
+  </div>
+
+  <div class="overlay hidden" id="overlay">
+    <div class="overlay-card">
+      <h2>Fertig!</h2>
+      <div class="big-wpm"><span id="res-wpm">0</span><small>Wörter/Minute</small></div>
+      <div class="res-grid">
+        <div><b id="res-acc">100 %</b><span>Genauigkeit</span></div>
+        <div><b id="res-mistakes">0</b><span>Fehler</span></div>
+        <div><b id="res-time">0:00</b><span>Zeit</span></div>
+      </div>
+      <p class="record hidden" id="record-badge">★ Neuer Rekord!</p>
+      <div class="overlay-actions">
+        <button class="btn primary" id="btn-again" type="button">Nochmal</button>
+      </div>
+      <p class="hint-small">Drücke <kbd>⏎</kbd> oder <kbd>Leertaste</kbd>, um neu zu beginnen.</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="rain-diff-overlay">
+    <div class="overlay-card">
+      <h2>Schwierigkeit wählen</h2>
+      <p class="difficulty-note">Wie schnell sollen die Wörter fallen?</p>
+      <div class="difficulty-actions">
+        <button class="btn difficulty" data-difficulty="easy" type="button">
+          <b>Leicht</b><span>langsamer · 7 Leben</span>
+        </button>
+        <button class="btn difficulty" data-difficulty="medium" type="button">
+          <b>Mittel</b><span>normal · 5 Leben</span>
+        </button>
+        <button class="btn difficulty" data-difficulty="hard" type="button">
+          <b>Schwer</b><span>schnell · 3 Leben</span>
+        </button>
+      </div>
+      <p class="hint-small">Tippe 1 / 2 / 3 für Leicht / Mittel / Schwer</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="rain-overlay">
+    <div class="overlay-card">
+      <h2>Spiel vorbei!</h2>
+      <div class="big-wpm"><span id="rain-res-score">0</span><small>Punkte</small></div>
+      <div class="res-grid">
+        <div><b id="rain-res-words">0</b><span>Wörter</span></div>
+        <div><b id="rain-res-level">1</b><span>Level</span></div>
+        <div><b id="rain-res-best">0</b><span>Rekord</span></div>
+      </div>
+      <p class="record hidden" id="rain-record-badge">★ Neuer Rekord!</p>
+      <div class="lb-qualified hidden" id="rain-lb-qualified">
+        <p class="lb-msg" id="rain-lb-msg"></p>
+        <div class="lb-name-row">
+          <input type="text" id="rain-lb-name" maxlength="16" placeholder="Dein Name" autocomplete="off" />
+          <button class="btn primary" id="rain-lb-submit" type="button">Speichern</button>
+        </div>
+      </div>
+      <div class="overlay-actions">
+        <button class="btn primary" id="rain-again" type="button">Nochmal</button>
+        <button class="btn" id="rain-lb-show-btn" type="button">Bestenliste</button>
+      </div>
+      <p class="hint-small">Drücke <kbd>⏎</kbd> oder <kbd>Leertaste</kbd>, um neu zu beginnen.</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="rain-lb-overlay">
+    <div class="overlay-card lb-card">
+      <h2>🏆 Bestenliste</h2>
+      <div id="rain-lb-list"></div>
+      <div class="overlay-actions">
+        <button class="btn primary" id="rain-lb-close" type="button">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js?v=20260817"></script>
+  <script src="app.js?v=20260817"></script>
+</body>
+</html>
